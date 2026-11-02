@@ -57,7 +57,7 @@ td,th{border-bottom:1px solid var(--line);padding:9px;text-align:left}
 .chat{max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;margin-bottom:12px}
 .msg{margin:10px 0;padding:10px 14px;border-radius:14px;line-height:1.5}
 .msg.user{background:#fde8e8;margin-left:20%}
-.msg.ai{background:#fff;border:1px solid var(--line);margin-right:10%}
+.msg.ai{background:#fff;border:1px solid var(--line);margin-right:10%;white-space:pre-line}
 footer{text-align:center;padding:24px;color:var(--muted)}
 .user-bar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:12px}
 .user-bar button{padding:8px 14px;font-size:14px}

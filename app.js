@@ -27,9 +27,27 @@ function show(tab){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
+// ===== Chuỗi ngày học (streak) =====
+// Chỉ tính ngày khi người học thật sự làm một việc học (tra từ, ghép câu,
+// quiz, thi thử, ôn tập...), vì logHistory chỉ được gọi ở những việc đó.
+function dayStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function updateStreakFields(){
+  if(!state.streak) state.streak=0;
+  const today=dayStr(new Date());
+  if(state.lastStudyDate===today) return;
+  const y=new Date(); y.setDate(y.getDate()-1);
+  if(state.lastStudyDate===dayStr(y)) state.streak+=1; else state.streak=1;
+  state.lastStudyDate=today;
+}
+function streakText(){
+  if(!state.streak) return 'Chuỗi ngày học: chưa có — hãy làm 1 việc học hôm nay để bắt đầu chuỗi ngày đầu tiên.';
+  return `🔥 Chuỗi ngày học: ${state.streak} ngày liên tiếp · Ngày học gần nhất: ${state.lastStudyDate || ''}`;
+}
+
 // ===== Lịch sử sử dụng trên web =====
 if(!state.history) state.history=[];
 function logHistory(text){
+  updateStreakFields();
   state.history.push({time:new Date().toLocaleString('vi-VN'), text});
   if(state.history.length>100) state.history=state.history.slice(-100);
   save(); renderUsageHistory();
@@ -82,6 +100,40 @@ $('menuTogglePetals').onclick=()=>{
   renderPetals(); refreshPetalButton();
 };
 $('menuHistory').onclick=()=>{ $('menuPanel').hidden=true; show('history'); renderUsageHistory(); window.scrollTo({top:0, behavior:'smooth'}); };
+
+// ===== Xuất / nhập tiến độ để sao lưu và chuyển máy =====
+function exportProgress(){
+  const blob=new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='cung-hoc-tieng-trung-tien-do.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function triggerImport(){ const f=$('importFile'); if(f) f.click(); }
+if($('menuExport')) $('menuExport').onclick=()=>{ $('menuPanel').hidden=true; exportProgress(); };
+if($('menuImport')) $('menuImport').onclick=()=>{ $('menuPanel').hidden=true; triggerImport(); };
+if($('historyExport')) $('historyExport').onclick=exportProgress;
+if($('historyImport')) $('historyImport').onclick=triggerImport;
+if($('importFile')) $('importFile').onchange=(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || !Array.isArray(data.known)) throw new Error('bad file');
+      state=data;
+      if(!Array.isArray(state.quiz)) state.quiz=[];
+      if(!Array.isArray(state.exam)) state.exam=[];
+      if(!Array.isArray(state.mock)) state.mock=[];
+      if(!Array.isArray(state.history)) state.history=[];
+      save();
+      location.reload();
+    }catch(err){
+      alert('File sao lưu này không đúng định dạng tiến độ của web. Bạn chọn lại file .json đã xuất từ web nhé.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+};
 
 // Trang chủ: chữ của hôm nay (đổi theo ngày)
 const today = WORDS[new Date().getDate() % WORDS.length];
@@ -146,9 +198,11 @@ document.querySelectorAll('#homeHskChips button').forEach(b=>{
   };
 });
 function toggleFav(han){ const i=state.known.indexOf(han); if(i>=0) state.known.splice(i,1); else state.known.push(han); save(); renderDict(filteredDict()); }
+// Tra pinyin không cần gõ dấu thanh: "ni hao" cũng tìm được "nǐ hǎo".
+function normPinyin(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ü/g,'v'); }
 function filteredDict(){
-  const q=($('dictSearch').value||'').toLowerCase(); const h=$('dictHsk').value;
-  return WORDS.filter(w=>(!h||w.hsk==h) && (!q || w.han.includes(q) || w.pinyin.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)));
+  const q=($('dictSearch').value||'').toLowerCase(); const h=$('dictHsk').value; const nq=normPinyin(q);
+  return WORDS.filter(w=>(!h||w.hsk==h) && (!q || w.han.includes(q) || w.pinyin.toLowerCase().includes(q) || normPinyin(w.pinyin).includes(nq) || w.meaning.toLowerCase().includes(q)));
 }
 $('dictSearch').oninput=()=>renderDict(filteredDict());
 $('dictHsk').onchange=()=>renderDict(filteredDict());
@@ -281,7 +335,47 @@ function renderHistory(){
 function updateProgress(){
   const pct = WORDS.length ? Math.round(state.known.length/WORDS.length*100) : 0;
   $('progressBar').style.width=pct+'%'; $('progressText').textContent=`Đã thuộc ${state.known.length}/${WORDS.length} từ (${pct}%) · Đã làm ${state.quiz.length} bài quiz`;
+  const st=streakText();
+  if($('streakText')) $('streakText').textContent=st;
+  if($('streakText2')) $('streakText2').textContent=st;
 }
+
+// ===== Ôn tập: chỉ ôn từ chưa thuộc =====
+let reviewPool=[], reviewIdx=0, reviewRevealed=false;
+function renderReview(){
+  const unknown=WORDS.filter(w=>!state.known.includes(w.han));
+  if(!reviewPool.length){
+    $('reviewCount').textContent=`Bạn còn ${unknown.length} từ chưa thuộc trong tổng số ${WORDS.length} từ.`;
+    $('reviewCard').innerHTML='<p class="small">Bấm Bắt đầu ôn để lấy danh sách từ chưa thuộc.</p>';
+    return;
+  }
+  if(reviewIdx>=reviewPool.length){
+    $('reviewCount').textContent=`Đã ôn hết ${reviewPool.length} từ trong lượt này.`;
+    $('reviewCard').innerHTML='<h3>🎉 Hết lượt ôn này rồi!</h3><p class="small">Bấm Bắt đầu ôn để ôn lại những từ còn chưa thuộc (nếu còn).</p>';
+    return;
+  }
+  const w=reviewPool[reviewIdx];
+  $('reviewCount').textContent=`Còn ${reviewPool.length} từ chưa thuộc · Đang ôn từ ${reviewIdx+1}/${reviewPool.length}`;
+  $('reviewCard').innerHTML=`<div class="han" style="font-size:72px">${w.han}</div>` + (reviewRevealed ? `<div class="pinyin" style="font-size:22px">${w.pinyin}</div><div style="font-size:18px;margin:8px 0">${w.meaning}</div><div>${w.ex}</div><div class="small">${w.exVi}</div>` : '<p class="small">Đoán nghĩa trong đầu rồi bấm Hiện nghĩa nhé.</p>');
+}
+function startReview(){
+  reviewPool=WORDS.filter(w=>!state.known.includes(w.han)).sort(()=>Math.random()-.5);
+  reviewIdx=0; reviewRevealed=false;
+  renderReview();
+  if(reviewPool.length) logHistory('Bắt đầu ôn từ chưa thuộc');
+}
+$('reviewStart').onclick=startReview;
+$('reviewReveal').onclick=()=>{ if(reviewPool[reviewIdx]){ reviewRevealed=true; renderReview(); } };
+$('reviewSpeak').onclick=()=>{ const w=reviewPool[reviewIdx]; if(w) speak(w.han); };
+$('reviewKnown').onclick=()=>{
+  const w=reviewPool[reviewIdx]; if(!w) return;
+  if(!state.known.includes(w.han)) state.known.push(w.han);
+  save();
+  logHistory(`Ôn và đánh dấu đã thuộc từ ${w.han}`);
+  reviewIdx++; reviewRevealed=false; renderReview();
+};
+$('reviewNext').onclick=()=>{ if(reviewPool[reviewIdx]){ reviewIdx++; reviewRevealed=false; renderReview(); } };
+renderReview();
 renderHistory(); updateProgress(); show('home');
 
 // ===== Luyện thi HSK 1-6 =====
@@ -402,7 +496,7 @@ function mockTimerText(){
 }
 function stopMockTimer(){ if(mockTimer){ clearInterval(mockTimer); mockTimer=null; } }
 function renderMockHistory(){
-  $('mockHistory').innerHTML = state.mock.slice(-10).reverse().map(r=>`<div>${r.date} · Đề HSK ${r.level} · ${r.score}/${r.total}${r.score>=6?' · Đạt (mô phỏng)':' · Chưa đạt (mô phỏng)'}</div>`).join('') || '<p class="small">Chưa có lịch sử đề thi thử.</p>';
+  $('mockHistory').innerHTML = state.mock.slice(-10).reverse().map(r=>`<div>${r.date} · Đề HSK ${r.level} · ${r.score}/${r.total}${r.score>=Math.ceil(r.total*0.6)?' · Đạt (mô phỏng)':' · Chưa đạt (mô phỏng)'}</div>`).join('') || '<p class="small">Chưa có lịch sử đề thi thử.</p>';
 }
 function startMock(){
   mockLevel=parseInt($('mockLevel').value,10);
@@ -424,24 +518,31 @@ function renderMock(){
     const review=mock.map((q,i)=>`
       <div class="card" style="margin:12px 0">
         <p><b>Câu ${i+1} · ${q.s}</b> — ${mockAnswers[i]===q.a?'✅ Đúng':'❌ Sai, bạn chọn: '+(mockAnswers[i]||'không chọn')}</p>
-        ${q.p?`<p>${q.p}</p>`:''}
-        <p>${q.q}</p>
-        <p>Đáp án đúng: <b>${q.a}</b></p>
+        ${q.p?`<p><b>Đoạn văn:</b> ${q.p}</p>`:''}
+        <p><b>Câu hỏi:</b> ${q.q}</p>
+        <p>Bạn chọn: <b>${mockAnswers[i]||'không chọn'}</b> · Đáp án đúng: <b>${q.a}</b></p>
         <p class="small">${q.e}</p>
       </div>`).join('');
-    $('mockBox').innerHTML=`<h3>Kết quả đề HSK ${mockLevel}: ${score}/${mock.length} ${score>=6?'(Đạt, theo chuẩn mô phỏng 60%)':'(Chưa đạt, theo chuẩn mô phỏng 60%)'}</h3><p class="small">Chuẩn này chỉ để tự đánh giá trong web, không phải chuẩn chấm chính thức của kỳ thi thật.</p>${review}`;
+    $('mockBox').innerHTML=`<h3>Kết quả đề HSK ${mockLevel}: ${score}/${mock.length} ${score>=Math.ceil(mock.length*0.6)?'(Đạt, theo chuẩn mô phỏng 60%)':'(Chưa đạt, theo chuẩn mô phỏng 60%)'}</h3><p class="small">Chuẩn này chỉ để tự đánh giá trong web, không phải chuẩn chấm chính thức của kỳ thi thật.</p>${review}`;
     state.mock.push({date:new Date().toLocaleDateString('vi-VN'), level:mockLevel, score, total:mock.length}); save(); renderMockHistory(); logHistory(`Làm đề thi thử mô phỏng HSK ${mockLevel}: ${score}/${mock.length}`); return;
   }
   const q=mock[mocki];
+  const pct=Math.round(mocki/mock.length*100);
+  const isSentenceChoice = q.s==='Viết' && /[\u4e00-\u9fff]/.test(q.o[0]||'');
   $('mockBox').innerHTML=`<p>Phần ${q.s} · Câu ${mocki+1}/${mock.length} · Còn lại: <span id="mockTimer">${mockTimerText()}</span></p>
-    ${q.p?`<div class="card" style="margin:0 0 12px">${q.p}</div>`:''}
-    <p style="font-size:18px">${q.q}</p>
-    ${q.audio?`<button class="secondary" onclick="speak('${q.audio}')">▶ Nghe lại</button>`:''}
-    <div class="row">${q.o.map(o=>`<button class="secondary mock-opt">${o}</button>`).join('')}</div>`;
+    <div class="progress"><div style="width:${pct}%"></div></div>
+    ${q.p?`<div class="card" style="margin:12px 0"><b>Đoạn văn:</b><br>${q.p}</div>`:''}
+    <p style="font-size:20px;font-weight:bold;margin:16px 0 8px">Câu hỏi: ${q.q}</p>
+    ${q.audio?`<p class="small">Bấm ▶ Nghe lại nếu bạn nghe chưa rõ. Câu nghe không hiện chữ Hán để giữ đúng dạng thi nghe.</p><button class="secondary" onclick="speak('${q.audio}')">▶ Nghe lại</button>`:''}
+    ${isSentenceChoice?`<p class="small">Các đáp án dưới đây đều là câu tiếng Trung. Hãy chọn câu đúng ngữ pháp và đúng với nghĩa trong câu hỏi.</p>`:''}
+    <div class="row">${q.o.map(o=>`<button class="secondary mock-opt">${o}</button>`).join('')}</div>
+    ${mocki>0?`<div class="row" style="margin-top:12px"><button class="secondary" id="mockBack">← Câu trước</button></div>`:''}`;
   if(q.audio) speak(q.audio);
   document.querySelectorAll('.mock-opt').forEach(b=>{
     b.onclick=()=>{ mockAnswers[mocki]=b.textContent; mocki++; renderMock(); };
   });
+  const back=$('mockBack');
+  if(back) back.onclick=()=>{ mocki--; renderMock(); };
 }
 $('mockStart').onclick=startMock;
 renderMockHistory();
@@ -449,8 +550,9 @@ renderMockHistory();
 // Trợ lý AI chạy ngay trong trình duyệt (Cách 1: không cần API key).
 // Nó chỉ trả lời dựa trên từ vựng trong data.js và kiến thức cơ bản đã lập trình sẵn.
 function aiAdd(text, who){
+  const box=$('aiChat'); if(!box) return;
   const d=document.createElement('div'); d.className='msg '+who; d.textContent=text;
-  $('aiChat').appendChild(d); $('aiChat').scrollTop=$('aiChat').scrollHeight;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
 }
 function aiExplain(w){
   return `${w.han} — pinyin: ${w.pinyin} — nghĩa: ${w.meaning} (HSK ${w.hsk}). Ví dụ: ${w.ex} — ${w.exVi}`;
@@ -484,10 +586,11 @@ function aiAnswer(raw){
   }
   aiAdd('Mình chưa hiểu câu này. Bạn thử hỏi theo mẫu nhé: "giải thích 你好", "pinyin của 谢谢", "thanh điệu là gì", "ra câu quiz", hoặc "ôn từ chưa thuộc".','ai');
 }
-window.aiAsk=function(text){ $('aiInput').value=text; aiAnswer(text); };
-$('aiSend').onclick=()=>{ const v=$('aiInput').value; $('aiInput').value=''; aiAnswer(v); };
-$('aiInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('aiSend').click(); });
-aiAdd('Xin chào! Mình là trợ lý AI trong web học tiếng Trung. Bạn muốn giải thích từ nào, học pinyin, hay làm một câu quiz nhanh?','ai');
+// Tab Trợ lý AI đã được thay bằng tab Đọc báo ở v33, nên khối này chỉ chạy
+// khi phần tử cũ còn tồn tại (để không làm hỏng các phần sau của script).
+window.aiAsk=function(text){ if($('aiInput')){ $('aiInput').value=text; aiAnswer(text); } };
+if($('aiSend')){ $('aiSend').onclick=()=>{ const v=$('aiInput').value; $('aiInput').value=''; aiAnswer(v); }; }
+if($('aiInput')){ $('aiInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('aiSend').click(); }); }
 
 // ===== Bản AI thông minh hơn: dịch Trung-Việt, Việt-Trung, giải thích chi tiết =====
 // Ghi đè hàm aiAnswer cũ bằng bản mới. Không cần API key, dịch dựa trên từ điển trong data.js.
@@ -519,7 +622,9 @@ function translateVietnamese(text){
     let matched=null, len=0;
     for(let l=3;l>=1;l--){
       const phrase=tokens.slice(i,i+l).join(' ');
-      const w=WORDS.find(x=>x.meaning.toLowerCase()===phrase);
+      // Khớp cả khi nghĩa trong từ điển ghi nhiều nghĩa cách nhau bằng dấu phẩy,
+      // ví dụ "học sinh, sinh viên" vẫn khớp với cụm "học sinh" hoặc "sinh viên".
+      const w=WORDS.find(x=>x.meaning.toLowerCase().split(/[,，;]/).map(s=>s.trim()).includes(phrase));
       if(w){ matched=w; len=l; break; }
     }
     if(matched){ out.push(matched); i+=len; } else { out.push({han:`[${tokens[i]}?]`, pinyin:'?', meaning:tokens[i], unknown:true}); i++; }
@@ -621,26 +726,77 @@ async function aiAnswerRemote(raw){
 aiAnswer = aiAnswerRemote;
 aiAdd('Bản này chạy trên GitHub Pages nên AI thật tạm dừng, vì Pages không chạy hàm server. Các phần học khác vẫn dùng bình thường.','ai');
 
-// ===== Ô chat nhỏ kiểu nhắn tin, hiện ở mọi tab =====
-// Dùng chung hàm server với tab Trợ lý AI. Nếu AI thật chưa kết nối thì
-// ô này báo rõ lỗi thay vì im lặng chuyển về trợ lý nội bộ, để bạn biết
-// là cần kiểm tra key / hàm server trên Netlify.
+// ===== Đọc báo song ngữ (thay tab Trợ lý AI từ v33) =====
+let newsShowVi=false, newsCur=null;
+function renderNews(){
+  const t=$('newsTopic').value, h=$('newsHsk').value;
+  const allNews=[...(typeof NEWS!=='undefined'?NEWS:[]), ...(typeof NEWS2!=='undefined'?NEWS2:[])];
+  const list=allNews.filter(n=>(t==='all'||n.topic===t) && (!h || n.hsk==h));
+  $('newsList').innerHTML=list.map(n=>`
+    <div class="card" style="cursor:pointer" onclick="showNews(${n.id})">
+      <div class="han" style="font-size:26px">${n.title}</div>
+      <div>${n.titleVi}</div>
+      <p class="small">HSK ${n.hsk} · ${n.topic} · ${n.han.join('').length} chữ Hán</p>
+    </div>`).join('') || '<p>Không có bài nào phù hợp với bộ lọc.</p>';
+}
+function showNews(id){
+  const allNews=[...(typeof NEWS!=='undefined'?NEWS:[]), ...(typeof NEWS2!=='undefined'?NEWS2:[])];
+  const n=allNews.find(x=>x.id===id); if(!n) return;
+  newsCur=n; newsShowVi=false;
+  $('newsDetail').innerHTML=`
+    <div class="card">
+      <div class="han" style="font-size:32px">${n.title}</div>
+      <div style="font-size:18px">${n.titleVi}</div>
+      <p class="small">HSK ${n.hsk} · ${n.topic} · Bài luyện đọc tự viết, không phải bài báo thật</p>
+      ${n.han.map(p=>`<p style="font-size:20px;line-height:1.9">${p}</p>`).join('')}
+      <div id="newsVi" hidden>${n.vi.map(p=>`<p>${p}</p>`).join('')}</div>
+      <div class="row">
+        <button class="secondary" onclick="speak('${n.han.join('').replace(/[，。！？、；：]/g,'')}'); logHistory('Nghe bài đọc: ${n.titleVi}')">🔊 Nghe toàn bài</button>
+        <button class="secondary" onclick="newsShowVi=!newsShowVi; $('newsVi').hidden=!newsShowVi; this.textContent=newsShowVi?'Ẩn bản dịch':'Hiện bản dịch'">Hiện bản dịch</button>
+        <button class="secondary" onclick="show('dict')">Tra từ trong Từ điển</button>
+      </div>
+      <h3>📖 Từ mới trong bài</h3>
+      ${n.vocab.map(v=>`<p><b>${v.han}</b> (${v.pinyin}): ${v.meaning}</p>`).join('')}
+    </div>`;
+  $('newsDetail').scrollIntoView({behavior:'smooth'});
+  logHistory(`Đọc bài: ${n.titleVi}`);
+}
+if($('newsTopic')){ $('newsTopic').onchange=renderNews; $('newsHsk').onchange=renderNews; renderNews(); }
+
+// ===== Nút ếch xanh: công cụ dịch Trung – Việt, chạy ngay trong trình duyệt =====
+// Không gọi hàm server nữa, vì GitHub Pages không chạy hàm server nên ô chat
+// cũ lúc nào cũng báo lỗi và không dùng được. Công cụ này chỉ dịch bằng
+// từ điển trong web (638 từ), không giả vờ là AI thật: từ nào chưa có trong
+// từ điển sẽ được báo rõ là chưa dịch chính xác được.
 function miniAdd(text, who){
   const box = $('miniChat'); if(!box) return;
   const d = document.createElement('div');
   d.className = 'msg ' + who; d.textContent = text;
   box.appendChild(d); box.scrollTop = box.scrollHeight;
 }
-async function miniSend(raw){
+function miniTranslate(raw){
+  const q = (raw || '').trim(); if(!q) return '';
+  const clean = q.replace(/^(dịch|dich|translate)[:\s]*/i, '').trim();
+  // Giải thích chi tiết một từ
+  if(/^(giải thích|giai thich|nghĩa của|ý nghĩa)/i.test(q)){
+    const exact = WORDS.find(w=>q.includes(w.han));
+    if(exact) return explainDetailed(exact);
+    const byMean = WORDS.find(w=>q.toLowerCase().includes(w.meaning.toLowerCase()));
+    if(byMean) return explainDetailed(byMean);
+    return 'Bạn ghi rõ từ cần giải thích giúp mình nhé, ví dụ: "giải thích: 学习".';
+  }
+  // Pinyin -> chữ Hán (ví dụ: gõ "xie xie" hoặc "xiè xie")
+  const byPinyin = WORDS.find(w=>w.pinyin.toLowerCase()===clean.toLowerCase());
+  if(byPinyin) return `Pinyin ${byPinyin.pinyin} là chữ ${byPinyin.han}, nghĩa: ${byPinyin.meaning} (HSK ${byPinyin.hsk}).`;
+  // Trung -> Việt
+  if(HAS_HAN.test(clean)) return translateChinese(clean);
+  // Việt -> Trung (mặc định cho câu không có chữ Hán)
+  return translateVietnamese(clean);
+}
+function miniSend(raw){
   const q = (raw || '').trim(); if(!q) return;
   miniAdd(q, 'user');
-  miniAdd('Đang nghĩ…', 'ai');
-  const thinking = $('miniChat').lastElementChild;
-  try{
-    thinking.textContent = await fetchRemoteAnswer(q);
-  }catch(e){
-    thinking.textContent = 'AI thật tạm dừng trên GitHub Pages, vì Pages không chạy hàm server. Các phần học khác vẫn dùng bình thường.';
-  }
+  miniAdd(miniTranslate(q), 'ai');
   $('miniChat').scrollTop = $('miniChat').scrollHeight;
 }
 window.miniAsk = function(text){ $('miniInput').value = text; miniSend(text); };
@@ -649,7 +805,7 @@ if(chatFab && chatBox){
   chatFab.onclick = ()=>{
     chatBox.hidden = !chatBox.hidden;
     if(!chatBox.hidden && !$('miniChat').children.length){
-      miniAdd('Xin chào! Bạn muốn hỏi gì về tiếng Trung? Gõ câu tiếng Trung để dịch, hoặc hỏi giải thích một từ nhé.', 'ai');
+      miniAdd('Xin chào! Đây là công cụ dịch Trung – Việt, chạy ngay trong web, không cần AI server.\nGõ câu tiếng Trung để dịch sang tiếng Việt, hoặc gõ câu tiếng Việt để dịch sang tiếng Trung. Ví dụ: 我爱中国, Tôi yêu Trung Quốc, hoặc "giải thích: 学习".\nLưu ý: công cụ chỉ dịch được từ có trong từ điển của web (638 từ), từ nào chưa có sẽ được báo rõ.', 'ai');
     }
   };
   $('chatClose').onclick = ()=>{ chatBox.hidden = true; };

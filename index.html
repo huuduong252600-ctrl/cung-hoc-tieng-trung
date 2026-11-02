@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cùng Học Tiếng Trung</title>
+<meta name="description" content="Web học tiếng Trung miễn phí: từ điển HSK 1–6, mẫu câu, luyện ghép câu, luyện viết, quiz, thi thử HSK và ôn từ chưa thuộc.">
 <link rel="icon" href="logo-huu-duong-tron.png">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -16,6 +17,9 @@
   <button class="secondary" id="menuChangeEmail">✉️ Đổi Gmail / Đăng xuất</button>
   <button class="secondary" id="menuTogglePetals">🌸 Tắt hoa đào bay</button>
   <button class="secondary" id="menuHistory">📜 Xem lịch sử sử dụng</button>
+  <button class="secondary" id="menuExport">📤 Xuất tiến độ (sao lưu)</button>
+  <button class="secondary" id="menuImport">📥 Nhập tiến độ đã sao lưu</button>
+  <input type="file" id="importFile" accept=".json" hidden>
 </div>
 <header>
   <img class="site-logo" src="logo-huu-duong-tron.png" alt="Logo Cùng học tiếng Trung">
@@ -47,9 +51,10 @@
   <button data-tab="write">✍️ Luyện viết</button>
 
   <button data-tab="quiz">📝 Quiz</button>
+  <button data-tab="review">🔁 Ôn tập</button>
   <button data-tab="docs">📚 Tài liệu</button>
   <button data-tab="exam">🎓 Luyện thi HSK</button>
-  <button data-tab="ai">🤖 Trợ lý AI</button>
+  <button data-tab="news">📰 Đọc báo</button>
 </nav>
 
 <main>
@@ -75,7 +80,8 @@
         <button class="secondary" onclick="show('sentences')">💬 Học mẫu câu</button>
         <button class="primary" onclick="show('build')">🧩 Luyện ghép câu</button>
         <button class="secondary" onclick="show('exam')">🎓 Thi thử HSK</button>
-        <button class="secondary" onclick="show('ai')">🤖 Hỏi trợ lý AI</button>
+        <button class="secondary" onclick="show('review')">🔁 Ôn từ chưa thuộc</button>
+        <button class="secondary" onclick="show('news')">📰 Đọc báo song ngữ</button>
       </div>
     </div>
     <div class="card" style="text-align:center">
@@ -89,9 +95,10 @@
 
     <div class="card">
       <h2>Lộ trình học của bạn</h2>
-      <p>1. Tra từ mới trong Từ điển → 2. Học mẫu câu → 3. Luyện ghép câu theo cấp HSK → 4. Luyện viết tay → 5. Làm Quiz → 6. Thi thử HSK.</p>
+      <p>1. Tra từ mới trong Từ điển → 2. Học mẫu câu → 3. Luyện ghép câu theo cấp HSK → 4. Luyện viết tay → 5. Làm Quiz → 6. Ôn từ chưa thuộc → 7. Thi thử HSK → 8. Đọc báo song ngữ.</p>
       <div class="progress"><div id="progressBar"></div></div>
       <p id="progressText"></p>
+      <p id="streakText" class="small"></p>
     </div>
 
     <div class="grid">
@@ -101,9 +108,10 @@
       <div class="card" style="cursor:pointer" onclick="show('write')"><h3>✍️ Luyện viết</h3><p>Viết theo chữ mẫu mờ trên ô tập viết.</p></div>
 
       <div class="card" style="cursor:pointer" onclick="show('quiz')"><h3>📝 Quiz</h3><p>4 chế độ trắc nghiệm, mỗi lần 10 câu, có lưu điểm.</p></div>
-      <div class="card" style="cursor:pointer" onclick="show('docs')"><h3>📚 Tài liệu</h3><p>Ngữ pháp cơ bản, 30 câu giao tiếp, hội thoại mẫu và số đếm.</p></div>
+      <div class="card" style="cursor:pointer" onclick="show('review')"><h3>🔁 Ôn tập</h3><p>Ôn lại những từ bạn chưa đánh dấu đã thuộc, có chuỗi ngày học.</p></div>
+      <div class="card" style="cursor:pointer" onclick="show('docs')"><h3>📚 Tài liệu</h3><p>Ngữ pháp cơ bản, 60 câu giao tiếp, hội thoại mẫu, cấu trúc hay dùng và số đếm.</p></div>
       <div class="card" style="cursor:pointer" onclick="show('exam')"><h3>🎓 Luyện thi HSK</h3><p>Chọn cấp HSK 1–6, xem từ theo cấp, làm đề thi thử có bấm giờ và lưu điểm.</p></div>
-      <div class="card" style="cursor:pointer" onclick="show('ai')"><h3>🤖 Trợ lý AI</h3><p>Hỏi đáp, dịch và giải thích từ, bấm ảnh ếch ở góc phải dưới để nhắn nhanh.</p></div>
+      <div class="card" style="cursor:pointer" onclick="show('news')"><h3>📰 Đọc báo</h3><p>Bài đọc song ngữ Trung – Việt theo chủ đề, có từ mới và nút nghe toàn bài.</p></div>
     </div>
   </section>
 
@@ -179,6 +187,24 @@
     <div class="card"><h3>Lịch sử quiz</h3><div id="quizHistory"></div></div>
   </section>
 
+  <section id="tab-review">
+    <h2>🔁 Ôn tập</h2>
+    <p class="small">Chỉ ôn những từ bạn chưa đánh dấu đã thuộc. Đoán nghĩa trong đầu, bấm Hiện nghĩa để kiểm tra, rồi bấm Đã thuộc nếu bạn nhớ, hoặc Từ tiếp theo nếu chưa nhớ.</p>
+    <p id="streakText2" class="small"></p>
+    <div class="card">
+      <p id="reviewCount" class="small"></p>
+      <div id="reviewCard" style="text-align:center"></div>
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button class="primary" id="reviewStart">Bắt đầu ôn</button>
+        <button class="secondary" id="reviewReveal">👁️ Hiện nghĩa</button>
+        <button class="secondary" id="reviewSpeak">🔊 Nghe</button>
+        <button class="secondary" id="reviewKnown">★ Đã thuộc</button>
+        <button class="secondary" id="reviewNext">Từ tiếp theo →</button>
+      </div>
+      <p id="reviewResult" class="small" style="text-align:center"></p>
+    </div>
+  </section>
+
   <section id="tab-docs">
     <h2>📚 Tài liệu học thêm</h2>
     <div class="card">
@@ -229,6 +255,85 @@
       </table>
     </div>
     <div class="card">
+      <h3>2b. Thêm 30 câu giao tiếp (nâng cao hơn)</h3>
+      <table>
+        <tr><th>Tiếng Trung</th><th>Pinyin</th><th>Tiếng Việt</th></tr>
+        <tr><td>你最近怎么样？</td><td>nǐ zuì jìn zěn me yàng?</td><td>Gần đây bạn thế nào?</td></tr>
+        <tr><td>我最近很忙。</td><td>wǒ zuì jìn hěn máng.</td><td>Gần đây tôi rất bận.</td></tr>
+        <tr><td>你住在哪里？</td><td>nǐ zhù zài nǎ lǐ?</td><td>Bạn ở đâu?</td></tr>
+        <tr><td>我住在河内。</td><td>wǒ zhù zài Hé nèi.</td><td>Tôi ở Hà Nội.</td></tr>
+        <tr><td>你喜欢什么运动？</td><td>nǐ xǐ huan shén me yùn dòng?</td><td>Bạn thích môn thể thao nào?</td></tr>
+        <tr><td>我喜欢跑步和游泳。</td><td>wǒ xǐ huan pǎo bù hé yóu yǒng.</td><td>Tôi thích chạy bộ và bơi lội.</td></tr>
+        <tr><td>你几点起床？</td><td>nǐ jǐ diǎn qǐ chuáng?</td><td>Bạn dậy lúc mấy giờ?</td></tr>
+        <tr><td>我六点起床。</td><td>wǒ liù diǎn qǐ chuáng.</td><td>Tôi dậy lúc sáu giờ.</td></tr>
+        <tr><td>你吃早饭了吗？</td><td>nǐ chī zǎo fàn le ma?</td><td>Bạn ăn sáng chưa?</td></tr>
+        <tr><td>我还没吃。</td><td>wǒ hái méi chī.</td><td>Tôi chưa ăn.</td></tr>
+        <tr><td>我们一起去吃饭吧。</td><td>wǒ men yì qǐ qù chī fàn ba.</td><td>Chúng ta cùng đi ăn cơm nhé.</td></tr>
+        <tr><td>好啊，我请客。</td><td>hǎo a, wǒ qǐng kè.</td><td>Được, tôi mời.</td></tr>
+        <tr><td>你会做饭吗？</td><td>nǐ huì zuò fàn ma?</td><td>Bạn biết nấu cơm không?</td></tr>
+        <tr><td>我会做一点。</td><td>wǒ huì zuò yì diǎn.</td><td>Tôi biết làm một chút.</td></tr>
+        <tr><td>这个菜很好吃。</td><td>zhè ge cài hěn hǎo chī.</td><td>Món này rất ngon.</td></tr>
+        <tr><td>你去过中国吗？</td><td>nǐ qù guo Zhōng guó ma?</td><td>Bạn đã từng đến Trung Quốc chưa?</td></tr>
+        <tr><td>我去过一次。</td><td>wǒ qù guo yí cì.</td><td>Tôi đã đi một lần.</td></tr>
+        <tr><td>你最喜欢哪个城市？</td><td>nǐ zuì xǐ huan nǎ ge chéng shì?</td><td>Bạn thích thành phố nào nhất?</td></tr>
+        <tr><td>我最喜欢北京。</td><td>wǒ zuì xǐ huan Běi jīng.</td><td>Tôi thích Bắc Kinh nhất.</td></tr>
+        <tr><td>今天天气怎么样？</td><td>jīn tiān tiān qì zěn me yàng?</td><td>Hôm nay thời tiết thế nào?</td></tr>
+        <tr><td>今天很热。</td><td>jīn tiān hěn rè.</td><td>Hôm nay rất nóng.</td></tr>
+        <tr><td>明天会下雨吗？</td><td>míng tiān huì xià yǔ ma?</td><td>Ngày mai sẽ mưa không?</td></tr>
+        <tr><td>可能不会。</td><td>kě néng bú huì.</td><td>Có thể sẽ không.</td></tr>
+        <tr><td>你学汉语多久了？</td><td>nǐ xué Hàn yǔ duō jiǔ le?</td><td>Bạn học tiếng Trung bao lâu rồi?</td></tr>
+        <tr><td>我学了一年。</td><td>wǒ xué le yì nián.</td><td>Tôi học một năm rồi.</td></tr>
+        <tr><td>你的汉语说得很好。</td><td>nǐ de Hàn yǔ shuō de hěn hǎo.</td><td>Tiếng Trung của bạn nói rất tốt.</td></tr>
+        <tr><td>哪里哪里，还差得远。</td><td>nǎ lǐ nǎ lǐ, hái chà de yuǎn.</td><td>Đâu có, còn kém xa.</td></tr>
+        <tr><td>请等我一下。</td><td>qǐng děng wǒ yí xià.</td><td>Xin đợi tôi một chút.</td></tr>
+        <tr><td>没问题。</td><td>méi wèn tí.</td><td>Không vấn đề gì.</td></tr>
+        <tr><td>我先走了，再见！</td><td>wǒ xiān zǒu le, zài jiàn!</td><td>Tôi đi trước đây, tạm biệt!</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>5. 10 cấu trúc ngữ pháp hay dùng</h3>
+      <p><b>不但…而且… (bùdàn…érqiě…):</b> không những… mà còn… — 他不但会说汉语，而且会说英语。</p>
+      <p><b>除了…还… (chúle…hái…):</b> ngoài… còn… — 除了汉语，他还会说英语。</p>
+      <p><b>如果…就… (rúguǒ…jiù…):</b> nếu… thì… — 如果明天下雨，我们就不去爬山。</p>
+      <p><b>只有…才… (zhǐyǒu…cái…):</b> chỉ có… mới… — 只有努力学习，才能取得好成绩。</p>
+      <p><b>越…越… (yuè…yuè…):</b> càng… càng… — 天气越来越冷了。</p>
+      <p><b>一…就… (yì…jiù…):</b> vừa… đã… — 他一回家就开始做作业。</p>
+      <p><b>不管…都… (bùguǎn…dōu…):</b> bất luận… đều… — 不管多忙，他都坚持学习。</p>
+      <p><b>不是…而是… (bú shì…ér shì…):</b> không phải… mà là… — 他不是老师，而是学生。</p>
+      <p><b>对…来说 (duì…lái shuō):</b> đối với… mà nói — 对我来说，汉语很有意思。</p>
+      <p><b>先…然后… (xiān…ránhòu…):</b> trước… sau đó… — 先吃饭，然后去散步。</p>
+    </div>
+    <div class="card">
+      <h3>5b. Ngữ pháp HSK 2–3–4, học theo cấp</h3>
+      <p><b>HSK 2 – 比 (bǐ):</b> so sánh hơn — 他比我高。 (Anh ấy cao hơn tôi.)</p>
+      <p><b>HSK 2 – 把 (bǎ):</b> đưa tân ngữ lên trước động từ — 请把书给我。 (Hãy đưa sách cho tôi.)</p>
+      <p><b>HSK 2 – 被 (bèi):</b> bị động — 我的书被他借走了。 (Sách của tôi bị anh ấy mượn đi rồi.)</p>
+      <p><b>HSK 2 – Động từ + 得 (de) + tính từ:</b> bổ ngữ mức độ — 他跑得很快。 (Anh ấy chạy rất nhanh.)</p>
+      <p><b>HSK 2 – 着 (zhe):</b> trạng thái đang tiếp diễn — 门开着。 (Cửa đang mở.)</p>
+      <p><b>HSK 2 – 过 (guo):</b> đã từng — 我去过中国。 (Tôi đã từng đến Trung Quốc.)</p>
+      <p><b>HSK 3 – 只要…就… (zhǐyào…jiù…):</b> chỉ cần… thì… — 只要努力，就会有进步。</p>
+      <p><b>HSK 3 – 无论…都… (wúlùn…dōu…):</b> bất luận… đều… — 无论多忙，他都坚持学习。</p>
+      <p><b>HSK 3 – 既然…就… (jìrán…jiù…):</b> đã… thì… — 既然来了，就好好学吧。</p>
+      <p><b>HSK 3 – 除了…以外 (chúle…yǐwài):</b> ngoài… ra — 除了汉语，他还会英语。</p>
+      <p><b>HSK 4 – 尽管…还是… (jǐnguǎn…háishì…):</b> dù… vẫn… — 尽管很忙，他还是来了。</p>
+      <p><b>HSK 4 – 随着… (suízhe…):</b> cùng với… — 随着城市的发展，交通越来越方便。</p>
+      <p><b>HSK 4 – 至于… (zhìyú…):</b> còn về… — 至于价格，我们以后再谈。</p>
+      <p><b>HSK 4 – 尤其是… (yóuqí shì…):</b> đặc biệt là… — 我喜欢水果，尤其是苹果。</p>
+      <p><b>HSK 4 – 甚至… (shènzhì…):</b> thậm chí… — 他甚至忘了吃饭。</p>
+      <p><b>HSK 4 – 难道… (nándào…):</b> chẳng lẽ… — 难道你不知道吗？</p>
+    </div>
+    <div class="card">
+      <h3>6. Từ vựng theo chủ đề (tra nhanh trong Từ điển)</h3>
+      <p><b>Gia đình:</b> 爸爸, 妈妈, 哥哥, 姐姐, 弟弟, 妹妹, 孩子, 朋友.</p>
+      <p><b>Ăn uống:</b> 米饭, 面条, 水, 茶, 咖啡, 苹果, 香蕉, 鸡蛋, 水果.</p>
+      <p><b>Du lịch:</b> 飞机, 火车, 汽车, 酒店, 机场, 公园, 博物馆, 旅行.</p>
+      <p><b>Công việc:</b> 工作, 公司, 老师, 学生, 医生, 会议, 任务, 努力, 机会.</p>
+      <p><b>Sức khỏe:</b> 身体, 健康, 运动, 医院, 医生, 药, 病, 累, 饿.</p>
+      <p><b>Thời tiết:</b> 天气, 雨, 雪, 风, 冷, 热, 晴, 阴, 温度.</p>
+      <p><b>Học tập:</b> 学习, 学校, 书, 笔, 考试, 作业, 老师, 同学, 知识.</p>
+      <p><b>Xã hội:</b> 社会, 环境, 文化, 历史, 政治, 经济, 发展, 未来.</p>
+    </div>
+    <div class="card">
       <h3>3. Hội thoại mẫu ngắn</h3>
       <p><b>Chào hỏi:</b> A: 你好！你叫什么名字？ B: 你好！我叫小明。你呢？ A: 我叫小红。很高兴认识你！ B: 我也是！</p>
       <p><b>Mua đồ:</b> A: 这个多少钱？ B: 五十块。 A: 太贵了，四十块可以吗？ B: 好吧，四十块。</p>
@@ -241,7 +346,7 @@
       <p><b>Ngày tháng:</b> 年 năm, 月 tháng, 日 / 号 ngày. Ví dụ: 2026年11月1日 = ngày 1 tháng 11 năm 2026.</p>
       <p><b>Thứ:</b> 星期一 thứ 2, 星期二 thứ 3, 星期三 thứ 4, 星期四 thứ 5, 星期五 thứ 6, 星期六 thứ 7, 星期天 / 星期日 chủ nhật.</p>
       <p><b>Buổi:</b> 早上 buổi sáng, 中午 buổi trưa, 下午 buổi chiều, 晚上 buổi tối.</p>
-      <p class="small">Mẹo học: mỗi ngày học 10 từ mới trong Từ điển, học mẫu câu trong tab Câu tiếng Trung, rồi luyện ghép câu theo cấp HSK. Tài liệu này dùng chung với 238 từ trong Từ điển của web.</p>
+      <p class="small">Mẹo học: mỗi ngày học 10 từ mới trong Từ điển, học mẫu câu trong tab Câu tiếng Trung, rồi luyện ghép câu theo cấp HSK. Tài liệu này dùng chung với 638 từ trong Từ điển của web.</p>
     </div>
   </section>
 
@@ -275,7 +380,7 @@
     </div>
     <div class="card">
       <h3>📝 Đề thi thử mô phỏng theo đề thật</h3>
-      <p class="small">Không chỉ ôn từ rời rạc nữa: đề này có 3 phần Nghe – Đọc – Viết/Ngữ pháp, 9 câu, bấm giờ 15 phút, chọn đáp án là chuyển câu tiếp theo, không báo đúng sai giữa chừng như thi thật. Cuối bài mới chấm điểm và xem giải thích từng câu.</p>
+      <p class="small">Không chỉ ôn từ rời rạc nữa: đề này có 3 phần Nghe – Đọc – Viết/Ngữ pháp, HSK 1, 5, 6 có 9 câu, HSK 2, 3, 4 có 15 câu, bấm giờ 15 phút, chọn đáp án là chuyển câu tiếp theo, không báo đúng sai giữa chừng như thi thật. Cuối bài mới chấm điểm và xem giải thích từng câu, chuẩn đạt mô phỏng là 60% số câu của đề đó.</p>
       <div class="row">
         <select id="mockLevel">
           <option value="1">HSK 1</option>
@@ -307,26 +412,24 @@
     <p class="small">Web ghi lại những việc bạn đã làm ở đây, mới nhất ở trên cùng, để bạn biết mình đã học tới đâu. Lịch sử này chỉ lưu trên trình duyệt này, theo Gmail bạn đang dùng.</p>
     <div class="row">
       <button class="secondary" id="historyClear">🗑️ Xóa lịch sử</button>
+      <button class="secondary" id="historyExport">📤 Xuất tiến độ (sao lưu)</button>
+      <button class="secondary" id="historyImport">📥 Nhập tiến độ đã sao lưu</button>
     </div>
+    <p class="small">Tiến độ chỉ lưu trên trình duyệt này. Bạn nên bấm Xuất tiến độ để tải file sao lưu về máy, khi đổi điện thoại hoặc xóa dữ liệu trình duyệt thì bấm Nhập tiến độ để khôi phục lại.</p>
     <div id="historyList" style="margin-top:16px"></div>
   </section>
 
-  <section id="tab-ai">
-    <h2>🤖 Trợ lý AI trong web</h2>
+  <section id="tab-news">
+    <h2>📰 Đọc báo</h2>
     <div class="card">
-      <p class="small">Web này đang chạy trên GitHub Pages, chỉ chạy web tĩnh nên không có hàm server, vì vậy AI thật tạm dừng ở bản này. Người dùng không cần nhập key, và cũng không nhập key vào đây.</p>
-      <p class="small">Các phần học khác vẫn chạy bình thường: từ điển, câu tiếng Trung, ghép câu, quiz, thi thử, lịch sử. Nếu muốn AI thật trở lại, chủ web cần thêm một dịch vụ hàm server miễn phí khác (ví dụ Cloudflare), lúc đó mình sẽ nối lại hàm AI với key của chủ web.</p>
-      <div id="aiChat" class="chat"></div>
+      <p class="small">Các bài dưới đây là <b>bài luyện đọc tự viết theo chủ đề tin tức</b>, không phải bài báo thật lấy từ một tờ báo nào, nên không ghi tên báo hay ngày đăng thật. Mỗi bài có bản tiếng Trung, bản dịch tiếng Việt, từ mới và nút nghe toàn bài.</p>
+      <p class="small">Cách học: đọc bản tiếng Trung trước, đoán nghĩa, bấm “Hiện bản dịch” để đối chiếu, rồi bấm vào từ mới để xem lại trong Từ điển. Cần dịch câu khác, bấm ảnh ếch xanh ở góc phải dưới.</p>
       <div class="row">
-        <input id="aiInput" placeholder="Ví dụ: giải thích 你好, pinyin của 谢谢, ra câu quiz…">
-        <button class="primary" id="aiSend">Gửi</button>
+        <select id="newsTopic"><option value="all">Tất cả chủ đề</option><option>Sức khỏe</option><option>Giao thông</option><option>Môi trường</option><option>Công nghệ</option><option>Giáo dục</option><option>Văn hóa</option><option>Du lịch</option><option>Kinh tế</option><option>Ẩm thực</option><option>Thể thao</option><option>Xã hội</option><option>Mua sắm</option><option>Đời sống</option></select>
+        <select id="newsHsk"><option value="0">Tất cả cấp HSK</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option></select>
       </div>
-      <div class="row">
-        <button class="secondary" onclick="aiAsk('我爱中国')">Dịch: 我爱中国</button>
-        <button class="secondary" onclick="aiAsk('Tôi yêu Trung Quốc')">Dịch: Tôi yêu Trung Quốc</button>
-        <button class="secondary" onclick="aiAsk('giải thích chi tiết: 学习')">Giải thích: 学习</button>
-        <button class="secondary" onclick="aiAsk('ra câu quiz')">Ra câu quiz</button>
-      </div>
+      <div id="newsList" class="grid" style="margin-top:16px"></div>
+      <div id="newsDetail" style="margin-top:16px"></div>
     </div>
   </section>
 </main>
@@ -342,28 +445,37 @@
 </footer>
 
 <!-- Ô chat nhỏ kiểu nhắn tin, hiện ở mọi tab -->
-<button id="chatFab" aria-label="Mở trò chuyện với trợ lý AI"><img src="ech-xanh.webp" alt="Ếch xanh"></button>
+<button id="chatFab" aria-label="Mở công cụ dịch Trung - Việt"><img src="ech-xanh.webp" alt="Ếch xanh - công cụ dịch"></button>
 <div id="chatBox" hidden>
   <div class="chat-head">
-    <span>🤖 Trợ lý AI</span>
-    <button id="chatClose" aria-label="Đóng khung chat">×</button>
+    <span>🌐 Dịch Trung – Việt</span>
+    <button id="chatClose" aria-label="Đóng khung dịch">×</button>
   </div>
   <div id="miniChat" class="chat mini-chat"></div>
   <div class="chat-input">
-    <input id="miniInput" placeholder="Nhắn cho trợ lý AI…">
-    <button id="miniSend">Gửi</button>
+    <input id="miniInput" placeholder="Gõ câu tiếng Trung hoặc tiếng Việt để dịch…">
+    <button id="miniSend">Dịch</button>
   </div>
   <div class="chat-chips">
     <button onclick="miniAsk('我爱中国')">Dịch: 我爱中国</button>
-    <button onclick="miniAsk('giải thích chi tiết: 学习')">Giải thích: 学习</button>
-    <button onclick="miniAsk('ra câu quiz')">Ra câu quiz</button>
+    <button onclick="miniAsk('Tôi yêu Trung Quốc')">Dịch: Tôi yêu Trung Quốc</button>
+    <button onclick="miniAsk('giải thích: 学习')">Giải thích: 学习</button>
   </div>
 </div>
 
 <script src="data.js"></script>
 <script src="hsk456.js"></script>
+<script src="hsk3v29.js"></script>
+<script src="wordsv33.js"></script>
+<script src="wordsv34.js"></script>
 <script src="mock_exams.js"></script>
+<script src="mockv34.js"></script>
 <script src="sentences.js"></script>
+<script src="sentences2.js"></script>
+<script src="sentences3.js"></script>
+<script src="sentences4.js"></script>
+<script src="news.js"></script>
+<script src="news2.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
