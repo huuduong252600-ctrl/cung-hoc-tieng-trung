@@ -1,0 +1,36 @@
+CÁCH ĐĂNG WEB LÊN GITHUB PAGES (MIỄN PHÍ) - CHỈ CẦN TRÌNH DUYỆT, KHÔNG CẦN CÀI GIT
+
+Bước 1: Giải nén file zip này ra một thư mục trên máy tính.
+  - Quan trọng: khi đăng lên GitHub, bạn chọn tất cả các file NẰM TRONG thư mục đó
+    (index.html, style.css, app.js, data.js, ...), KHÔNG đăng cả thư mục, KHÔNG đăng file zip.
+
+Bước 2: Vào github.com, đăng nhập tài khoản GitHub của bạn.
+  - Bấm dấu + ở góc phải trên -> New repository.
+  - Repository name: gõ hoc-tieng-trung
+  - Chọn Public (để GitHub Pages miễn phí).
+  - KHÔNG tick Add a README, KHÔNG thêm gì khác.
+  - Bấm Create repository.
+
+Bước 3: Đăng file lên repo.
+  - Trên trang repo mới, bấm "uploading an existing file".
+  - Kéo tất cả các file trong thư mục đã giải nén vào đó (hoặc bấm choose your files và chọn hết).
+  - Kéo xuống dưới, bấm Commit changes (để nguyên Commit directly to the main branch).
+
+Bước 4: Bật GitHub Pages.
+  - Trong repo, bấm Settings (tab trên cùng, bên phải).
+  - Bấm Pages ở menu bên trái.
+  - Mục Build and deployment, Source: chọn Deploy from a branch.
+  - Branch: chọn main, thư mục: / (root), bấm Save.
+  - Đợi 1-2 phút, tải lại trang Settings -> Pages, GitHub sẽ hiện link dạng:
+    https://<ten-github-cua-ban>.github.io/hoc-tieng-trung/
+  - Mở link đó bằng tab mới. Lần đầu có thể cần đợi thêm vài phút.
+
+Bước 5: Sau này muốn sửa web.
+  - Bạn nhận file zip mới từ trợ lý, giải nén, vào repo -> Add file -> Upload files,
+    kéo các file mới đè lên file cũ, Commit changes. GitHub Pages sẽ tự đăng lại sau 1-2 phút.
+
+Lưu ý quan trọng:
+  - GitHub Pages chỉ chạy web tĩnh, không chạy hàm server, nên AI thật tạm dừng ở bản này.
+    Các phần học khác (từ điển, câu, ghép câu, quiz, thi thử, lịch sử) vẫn chạy bình thường.
+  - Địa chỉ cũ yangdoo.netlify.app sẽ không còn dùng cho bản này nữa, trừ khi bạn gắn tên miền riêng vào GitHub Pages sau này.
+  - Repo để Public thì mã nguồn ai cũng xem được. Đừng để key API vào trong file code.
