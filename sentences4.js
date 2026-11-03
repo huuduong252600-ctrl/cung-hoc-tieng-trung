@@ -30,7 +30,7 @@ SENTENCES.push(
 {han:"市场里有很多新鲜的水果。", pinyin:"shìchǎng li yǒu hěn duō xīnxiān de shuǐguǒ.", meaning:"Trong chợ có nhiều hoa quả tươi.", topic:"Mua sắm", hsk:3, words:["市场","里","有","很多","新鲜","的","水果"]},
 {han:"他是比赛的冠军，大家都很佩服他。", pinyin:"tā shì bǐsài de guànjūn, dàjiā dōu hěn pèifu tā.", meaning:"Anh ấy là quán quân cuộc thi, mọi người đều rất khâm phục anh ấy.", topic:"Xã hội", hsk:3, words:["他","是","比赛","的","冠军","大家","都","很","佩服","他"]},
 {han:"今晚有一场演出，我想去看。", pinyin:"jīnwǎn yǒu yì chǎng yǎnchū, wǒ xiǎng qù kàn.", meaning:"Tối nay có một buổi biểu diễn, tôi muốn đi xem.", topic:"Văn hóa", hsk:3, words:["今晚","有","一场","演出","我","想","去","看"]},
-{han:"随着城市的发展，交通越来越方便。", pinyin:"suízhe chéngshì de fāzhǎn, jiāotōng yuè lái yuè fāngbiàn.", meaning:"Cùng với sự phát triển của thành phố, giao thông ngày càng tiện lợi.", topic:"Xã hội", hsk:4, words:["随着","城市","的","发展","交通","越来越","方便"]},
+{han:"随着工作经验的增加，他处理问题越来越熟练。", pinyin:"suízhe gōng zuò jīng yàn de zēng jiā, tā chǔ lǐ wèn tí yuè lái yuè shú liàn.", meaning:"Cùng với kinh nghiệm làm việc tăng lên, anh ấy xử lý vấn đề ngày càng thành thạo.", topic:"Công việc", hsk:4, words:["随着","工作","经验","的","增加","他","处理","问题","越来越","熟练"]},
 {han:"至于价格，我们可以再谈一谈。", pinyin:"zhìyú jiàgé, wǒmen kěyǐ zài tán yì tán.", meaning:"Còn về giá cả, chúng ta có thể bàn lại một chút.", topic:"Công việc", hsk:4, words:["至于","价格","我们","可以","再","谈","一谈"]},
 {han:"他似乎很累，需要好好休息。", pinyin:"tā sìhū hěn lèi, xūyào hǎohāo xiūxi.", meaning:"Anh ấy dường như rất mệt, cần nghỉ ngơi thật tốt.", topic:"Đời sống", hsk:4, words:["他","似乎","很累","需要","好好","休息"]},
 {han:"难道你不知道这件事吗？", pinyin:"nándào nǐ bù zhīdào zhè jiàn shì ma?", meaning:"Lẽ nào bạn không biết việc này sao?", topic:"Đời sống", hsk:4, words:["难道","你","不知道","这件","事","吗"]},

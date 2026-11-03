@@ -28,6 +28,21 @@
   <div id="userBar" class="user-bar" hidden>
     <span id="userGreeting"></span>
   </div>
+  <div class="row" style="justify-content:center;margin-top:10px">
+    <label class="small">🔊 Giọng đọc:
+      <select id="voiceSelect"><option value="auto">Tự động (ưu tiên giọng nữ)</option></select>
+    </label>
+    <label class="small">Tốc độ:
+      <select id="rateSelect">
+        <option value="0.5">0.5× (rất chậm)</option>
+        <option value="0.75">0.75× (chậm)</option>
+        <option value="1" selected>1× (bình thường)</option>
+        <option value="1.25">1.25× (nhanh)</option>
+        <option value="1.5">1.5× (rất nhanh)</option>
+      </select>
+    </label>
+  </div>
+  <p class="small" style="text-align:center">Giọng đọc ưu tiên giọng nữ nếu trình duyệt của bạn có sẵn; nghe bài đọc sẽ ngắt nghỉ theo dấu câu và theo từng đoạn, không đọc liền một mạch.</p>
 </header>
 
 <!-- Màn hình đăng nhập đơn giản: chỉ cần Gmail, không cần mật khẩu -->
@@ -346,7 +361,7 @@
       <p><b>Ngày tháng:</b> 年 năm, 月 tháng, 日 / 号 ngày. Ví dụ: 2026年11月1日 = ngày 1 tháng 11 năm 2026.</p>
       <p><b>Thứ:</b> 星期一 thứ 2, 星期二 thứ 3, 星期三 thứ 4, 星期四 thứ 5, 星期五 thứ 6, 星期六 thứ 7, 星期天 / 星期日 chủ nhật.</p>
       <p><b>Buổi:</b> 早上 buổi sáng, 中午 buổi trưa, 下午 buổi chiều, 晚上 buổi tối.</p>
-      <p class="small">Mẹo học: mỗi ngày học 10 từ mới trong Từ điển, học mẫu câu trong tab Câu tiếng Trung, rồi luyện ghép câu theo cấp HSK. Tài liệu này dùng chung với 638 từ trong Từ điển của web.</p>
+      <p class="small">Mẹo học: mỗi ngày học 10 từ mới trong Từ điển, học mẫu câu trong tab Câu tiếng Trung, rồi luyện ghép câu theo cấp HSK. Tài liệu này dùng chung với 788 từ trong Từ điển của web.</p>
     </div>
   </section>
 
@@ -422,11 +437,11 @@
   <section id="tab-news">
     <h2>📰 Đọc báo</h2>
     <div class="card">
-      <p class="small">Các bài dưới đây là <b>bài luyện đọc tự viết theo chủ đề tin tức</b>, không phải bài báo thật lấy từ một tờ báo nào, nên không ghi tên báo hay ngày đăng thật. Mỗi bài có bản tiếng Trung, bản dịch tiếng Việt, từ mới và nút nghe toàn bài.</p>
-      <p class="small">Cách học: đọc bản tiếng Trung trước, đoán nghĩa, bấm “Hiện bản dịch” để đối chiếu, rồi bấm vào từ mới để xem lại trong Từ điển. Cần dịch câu khác, bấm ảnh ếch xanh ở góc phải dưới.</p>
+      <p class="small">Các bài dưới đây là <b>bài luyện đọc tự viết, văn ngắn và thơ cổ đã hết bản quyền</b>, không phải bài báo thật lấy từ một tờ báo nào, nên không ghi tên báo hay ngày đăng thật. Mỗi bài có bản tiếng Trung, bản dịch tiếng Việt, từ mới và nút nghe toàn bài.</p>
+      <p class="small">Cách học: đọc bản tiếng Trung trước, đoán nghĩa, bấm “Hiện bản dịch + pinyin” để đối chiếu cả pinyin và nghĩa, rồi bấm vào từ mới để xem lại trong Từ điển. Cần dịch câu khác, bấm ảnh ếch xanh ở góc phải dưới.</p>
       <div class="row">
-        <select id="newsTopic"><option value="all">Tất cả chủ đề</option><option>Sức khỏe</option><option>Giao thông</option><option>Môi trường</option><option>Công nghệ</option><option>Giáo dục</option><option>Văn hóa</option><option>Du lịch</option><option>Kinh tế</option><option>Ẩm thực</option><option>Thể thao</option><option>Xã hội</option><option>Mua sắm</option><option>Đời sống</option></select>
-        <select id="newsHsk"><option value="0">Tất cả cấp HSK</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option></select>
+        <select id="newsTopic"><option value="all">Tất cả chủ đề</option><option>Sức khỏe</option><option>Giao thông</option><option>Môi trường</option><option>Công nghệ</option><option>Giáo dục</option><option>Văn hóa</option><option>Du lịch</option><option>Kinh tế</option><option>Ẩm thực</option><option>Thể thao</option><option>Xã hội</option><option>Mua sắm</option><option>Đời sống</option><option>Thơ cổ</option><option>Trích dẫn sách</option><option>Gia đình</option><option>Học tập</option><option>Công việc</option></select>
+        <select id="newsHsk"><option value="0">Tất cả cấp HSK</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option></select>
       </div>
       <div id="newsList" class="grid" style="margin-top:16px"></div>
       <div id="newsDetail" style="margin-top:16px"></div>
@@ -468,14 +483,18 @@
 <script src="hsk3v29.js"></script>
 <script src="wordsv33.js"></script>
 <script src="wordsv34.js"></script>
+<script src="wordsv35.js"></script>
 <script src="mock_exams.js"></script>
 <script src="mockv34.js"></script>
 <script src="sentences.js"></script>
 <script src="sentences2.js"></script>
 <script src="sentences3.js"></script>
 <script src="sentences4.js"></script>
+<script src="sentences5.js"></script>
 <script src="news.js"></script>
 <script src="news2.js"></script>
+<script src="news3.js"></script>
+<script src="newsPinyin.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

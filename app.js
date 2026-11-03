@@ -20,7 +20,58 @@ function loadState(){
 let state = loadState();
 function save(){ localStorage.setItem(progressKey(), JSON.stringify(state)); updateProgress(); }
 function logout(){ try{ localStorage.removeItem('hoc-tieng-trung-user'); }catch(e){} location.reload(); }
-function speak(text){ if(!('speechSynthesis' in window)) return alert('Trình duyệt của bạn không hỗ trợ đọc tiếng Trung.'); const u = new SpeechSynthesisUtterance(text); u.lang='zh-CN'; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+// ===== Giọng đọc: ưu tiên giọng nữ, chỉnh được tốc độ (v35) =====
+// Trình duyệt không cho biết trực tiếp giọng nào là nữ, nên chế độ Tự động
+// ưu tiên các giọng tiếng Trung có tên thường là nữ (Xiaoxiao, Xiaohan,
+// Yunxia...). Người học vẫn chọn được giọng cụ thể trong ô chọn giọng đọc.
+let voiceRate = 1, voiceName = 'auto';
+try{ voiceRate = parseFloat(localStorage.getItem('hoc-tieng-trung-rate')) || 1; voiceName = localStorage.getItem('hoc-tieng-trung-voice') || 'auto'; }catch(e){}
+function pickVoice(){
+  if(!('speechSynthesis' in window)) return null;
+  const zh = speechSynthesis.getVoices().filter(v=>v.lang && v.lang.toLowerCase().startsWith('zh'));
+  if(!zh.length) return null;
+  if(voiceName && voiceName!=='auto'){
+    const picked = zh.find(v=>v.name===voiceName); if(picked) return picked;
+  }
+  const female = zh.find(v=>/xiao|xiaohan|xiaomeng|yunxia|yao|mei|ting|jia|female|女/i.test(v.name));
+  return female || zh[0];
+}
+function populateVoices(){
+  const sel = $('voiceSelect'); if(!sel || !('speechSynthesis' in window)) return;
+  const zh = speechSynthesis.getVoices().filter(v=>v.lang && v.lang.toLowerCase().startsWith('zh'));
+  const cur = sel.value || voiceName;
+  sel.innerHTML = '<option value="auto">Tự động (ưu tiên giọng nữ)</option>' + zh.map(v=>`<option value="${v.name.replace(/"/g,'')}">${v.name} (${v.lang})</option>`).join('');
+  sel.value = zh.some(v=>v.name===cur) ? cur : 'auto';
+  const rateSel = $('rateSelect'); if(rateSel) rateSel.value = String(voiceRate);
+}
+function speak(text){ if(!('speechSynthesis' in window)) return alert('Trình duyệt của bạn không hỗ trợ đọc tiếng Trung.'); const u = new SpeechSynthesisUtterance(text); u.lang='zh-CN'; const v = pickVoice(); if(v) u.voice = v; u.rate = voiceRate; u.pitch = 1.05; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+if($('voiceSelect')){
+  $('voiceSelect').onchange = ()=>{ voiceName = $('voiceSelect').value; try{ localStorage.setItem('hoc-tieng-trung-voice', voiceName); }catch(e){} };
+  $('rateSelect').onchange = ()=>{ voiceRate = parseFloat($('rateSelect').value) || 1; try{ localStorage.setItem('hoc-tieng-trung-rate', String(voiceRate)); }catch(e){} };
+  if('speechSynthesis' in window){ populateVoices(); speechSynthesis.onvoiceschanged = populateVoices; }
+}
+// Đọc bài dài: đọc từng đoạn một, giữ nguyên dấu câu để máy tự ngắt nghỉ
+// theo dấu câu, rồi nghỉ thêm một nhịp ngắn giữa các đoạn. Không xóa dấu
+// câu như bản cũ (bản cũ xóa dấu nên máy đọc liền một mạch).
+let speakToken = 0;
+function speakParagraphs(parts){
+  if(!('speechSynthesis' in window)) return alert('Trình duyệt của bạn không hỗ trợ đọc tiếng Trung.');
+  speechSynthesis.cancel();
+  const myToken = ++speakToken;
+  const queue = parts.filter(p=>p && p.trim());
+  let i = 0;
+  const next = ()=>{
+    if(myToken!==speakToken) return;
+    if(i>=queue.length) return;
+    const u = new SpeechSynthesisUtterance(queue[i]); u.lang='zh-CN';
+    const v = pickVoice(); if(v) u.voice = v; u.rate = voiceRate; u.pitch = 1.05;
+    i++;
+    u.onend = ()=>{ if(myToken===speakToken) setTimeout(next, 400); };
+    u.onerror = ()=>{ if(myToken===speakToken) setTimeout(next, 400); };
+    speechSynthesis.speak(u);
+  };
+  next();
+}
 function show(tab){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('main section').forEach(s=>s.classList.toggle('active', s.id==='tab-'+tab));
@@ -728,10 +779,16 @@ aiAdd('Bản này chạy trên GitHub Pages nên AI thật tạm dừng, vì Pag
 
 // ===== Đọc báo song ngữ (thay tab Trợ lý AI từ v33) =====
 let newsShowVi=false, newsCur=null;
+function allNewsList(){
+  return [...(typeof NEWS!=='undefined'?NEWS:[]), ...(typeof NEWS2!=='undefined'?NEWS2:[]), ...(typeof NEWS3!=='undefined'?NEWS3:[])];
+}
 function renderNews(){
   const t=$('newsTopic').value, h=$('newsHsk').value;
-  const allNews=[...(typeof NEWS!=='undefined'?NEWS:[]), ...(typeof NEWS2!=='undefined'?NEWS2:[])];
-  const list=allNews.filter(n=>(t==='all'||n.topic===t) && (!h || n.hsk==h));
+  const allNews=allNewsList();
+  // "Tất cả cấp HSK" có value="0": chuỗi '0' trong JS vẫn là truthy nên
+  // điều kiện cũ (!h || n.hsk==h) lọc ra 0 bài. Sửa thành: chọn Tất cả thì
+  // gom toàn bộ bài lại, không phân chia theo cấp bậc.
+  const list=allNews.filter(n=>(t==='all'||n.topic===t) && (!h || h==='0' || n.hsk==h));
   $('newsList').innerHTML=list.map(n=>`
     <div class="card" style="cursor:pointer" onclick="showNews(${n.id})">
       <div class="han" style="font-size:26px">${n.title}</div>
@@ -740,19 +797,23 @@ function renderNews(){
     </div>`).join('') || '<p>Không có bài nào phù hợp với bộ lọc.</p>';
 }
 function showNews(id){
-  const allNews=[...(typeof NEWS!=='undefined'?NEWS:[]), ...(typeof NEWS2!=='undefined'?NEWS2:[])];
+  const allNews=allNewsList();
   const n=allNews.find(x=>x.id===id); if(!n) return;
   newsCur=n; newsShowVi=false;
+  const pinArr = n.pinyin || (typeof NEWS_PINYIN!=='undefined' ? NEWS_PINYIN[n.id] : null);
+  const pinHtml = (pinArr && pinArr.length)
+    ? pinArr.map(p=>`<p style="font-size:18px;line-height:1.9;color:#7c2d12">${p}</p>`).join('')
+    : '<p class="small">Bài này đang được bổ sung pinyin, bản dịch tiếng Việt vẫn xem được bên dưới.</p>';
   $('newsDetail').innerHTML=`
     <div class="card">
       <div class="han" style="font-size:32px">${n.title}</div>
       <div style="font-size:18px">${n.titleVi}</div>
       <p class="small">HSK ${n.hsk} · ${n.topic} · Bài luyện đọc tự viết, không phải bài báo thật</p>
       ${n.han.map(p=>`<p style="font-size:20px;line-height:1.9">${p}</p>`).join('')}
-      <div id="newsVi" hidden>${n.vi.map(p=>`<p>${p}</p>`).join('')}</div>
+      <div id="newsVi" hidden><h3>🔤 Pinyin</h3>${pinHtml}<h3>🇻🇳 Bản dịch tiếng Việt</h3>${n.vi.map(p=>`<p>${p}</p>`).join('')}</div>
       <div class="row">
-        <button class="secondary" onclick="speak('${n.han.join('').replace(/[，。！？、；：]/g,'')}'); logHistory('Nghe bài đọc: ${n.titleVi}')">🔊 Nghe toàn bài</button>
-        <button class="secondary" onclick="newsShowVi=!newsShowVi; $('newsVi').hidden=!newsShowVi; this.textContent=newsShowVi?'Ẩn bản dịch':'Hiện bản dịch'">Hiện bản dịch</button>
+        <button class="secondary" onclick="speakParagraphs(newsCur.han); logHistory('Nghe bài đọc: ${n.titleVi}')">🔊 Nghe toàn bài</button>
+        <button class="secondary" onclick="newsShowVi=!newsShowVi; $('newsVi').hidden=!newsShowVi; this.textContent=newsShowVi?'Ẩn bản dịch + pinyin':'Hiện bản dịch + pinyin'">Hiện bản dịch + pinyin</button>
         <button class="secondary" onclick="show('dict')">Tra từ trong Từ điển</button>
       </div>
       <h3>📖 Từ mới trong bài</h3>
@@ -766,7 +827,7 @@ if($('newsTopic')){ $('newsTopic').onchange=renderNews; $('newsHsk').onchange=re
 // ===== Nút ếch xanh: công cụ dịch Trung – Việt, chạy ngay trong trình duyệt =====
 // Không gọi hàm server nữa, vì GitHub Pages không chạy hàm server nên ô chat
 // cũ lúc nào cũng báo lỗi và không dùng được. Công cụ này chỉ dịch bằng
-// từ điển trong web (638 từ), không giả vờ là AI thật: từ nào chưa có trong
+// từ điển trong web (788 từ), không giả vờ là AI thật: từ nào chưa có trong
 // từ điển sẽ được báo rõ là chưa dịch chính xác được.
 function miniAdd(text, who){
   const box = $('miniChat'); if(!box) return;
@@ -805,7 +866,7 @@ if(chatFab && chatBox){
   chatFab.onclick = ()=>{
     chatBox.hidden = !chatBox.hidden;
     if(!chatBox.hidden && !$('miniChat').children.length){
-      miniAdd('Xin chào! Đây là công cụ dịch Trung – Việt, chạy ngay trong web, không cần AI server.\nGõ câu tiếng Trung để dịch sang tiếng Việt, hoặc gõ câu tiếng Việt để dịch sang tiếng Trung. Ví dụ: 我爱中国, Tôi yêu Trung Quốc, hoặc "giải thích: 学习".\nLưu ý: công cụ chỉ dịch được từ có trong từ điển của web (638 từ), từ nào chưa có sẽ được báo rõ.', 'ai');
+      miniAdd('Xin chào! Đây là công cụ dịch Trung – Việt, chạy ngay trong web, không cần AI server.\nGõ câu tiếng Trung để dịch sang tiếng Việt, hoặc gõ câu tiếng Việt để dịch sang tiếng Trung. Ví dụ: 我爱中国, Tôi yêu Trung Quốc, hoặc "giải thích: 学习".\nLưu ý: công cụ chỉ dịch được từ có trong từ điển của web (788 từ), từ nào chưa có sẽ được báo rõ.', 'ai');
     }
   };
   $('chatClose').onclick = ()=>{ chatBox.hidden = true; };
@@ -824,6 +885,7 @@ if(chatFab && chatBox){
     gate.hidden = true;
     userBar.hidden = false;
     greeting.textContent = 'Xin chào, ' + email;
+    const me = $('menuEmail'); if(me) me.textContent = email;
   }
   function doLogin(){
     const email = (emailInput.value || '').trim().toLowerCase();
@@ -833,10 +895,14 @@ if(chatFab && chatBox){
     }
     try{ localStorage.setItem('hoc-tieng-trung-user', email); }catch(e){}
     err.textContent = '';
-    // Tải lại trang để tiến độ, ghép câu và quiz đều lấy đúng dữ liệu của Gmail này.
-    location.reload();
+    // Vào ngay, không tải lại trang nữa: bản cũ tải lại trang nên có lúc
+    // trình duyệt hiện lại bản cũ trong bộ nhớ đệm, người học tưởng là
+    // bấm nút không có tác dụng. Tiến độ của Gmail này được nạp lại ngay
+    // tại đây (loadState tự chuyển tiến độ chung cũ sang nếu Gmail mới).
+    try{ state = loadState(); updateProgress(); renderUsageHistory(); }catch(e){}
+    showUser(email);
   }
-  $('loginBtn').onclick = doLogin;
+  if($('loginBtn')) $('loginBtn').onclick = doLogin;
   emailInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') doLogin(); });
   // Đăng xuất / đổi Gmail chỉ còn trong menu 3 gạch, không còn nút ở đầu trang để tránh bấm nhầm.
   let saved = null;
